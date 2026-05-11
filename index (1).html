@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MRC Trading Journal</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh;}
+.top-bar{background:#1a1a1a;color:#fff;padding:13px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.top-bar h1{font-size:16px;font-weight:600;}
+.sync-status{font-size:11px;padding:4px 10px;border-radius:99px;font-weight:500;}
+.sync-ok{background:#1D9E75;color:#fff;}.sync-err{background:#D85A30;color:#fff;}.sync-ing{background:#444;color:#ccc;}
+.balance-bar{background:#111;padding:11px 20px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;border-bottom:1px solid #2a2a2a;}
+.bal-item{display:flex;flex-direction:column;gap:2px;}
+.bal-label{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.5px;}
+.bal-value{font-size:16px;font-weight:700;color:#fff;}
+.bal-value.green{color:#1D9E75;}.bal-value.red{color:#D85A30;}.bal-value.yellow{color:#F5C842;}
+.bal-edit-btn{margin-left:auto;background:#2a2a2a;border:1px solid #444;color:#ccc;padding:6px 13px;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit;}
+.bal-edit-btn:hover{background:#333;color:#fff;}
+.container{max-width:960px;margin:0 auto;padding:18px 14px;}
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:#e8e8e2;border-radius:10px;padding:4px;}
+.tab-btn{flex:1;padding:8px 6px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:500;color:#666;border-radius:8px;transition:all .15s;font-family:inherit;}
+.tab-btn.active{background:#fff;color:#1a1a1a;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:13px;border:1px solid #e8e8e2;}
+.card-title{font-size:13px;font-weight:600;color:#333;margin-bottom:13px;padding-bottom:9px;border-bottom:1px solid #f0f0e8;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.field-group{display:flex;flex-direction:column;gap:4px;}
+.field-label{font-size:11px;font-weight:500;color:#666;}
+.field-group input,.field-group select,.field-group textarea{width:100%;padding:8px 10px;border:1px solid #e0e0d8;border-radius:8px;font-size:13px;background:#fafaf8;color:#1a1a1a;font-family:inherit;transition:border-color .15s;}
+.field-group input:focus,.field-group select:focus,.field-group textarea:focus{outline:none;border-color:#7F77DD;background:#fff;}
+.field-group textarea{resize:vertical;min-height:62px;line-height:1.5;}
+.calc-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0;}
+.calc-box{background:#f8f8f4;border:1px solid #e8e8e0;border-radius:8px;padding:9px 11px;}
+.calc-box .cl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;}
+.calc-box .cv{font-size:14px;font-weight:700;color:#555;}
+.cv.profit{color:#0F6E56;}.cv.loss{color:#993C1D;}.cv.warn{color:#B07A00;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px;}
+.btn{padding:9px 15px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;border:1px solid transparent;}
+.btn-save{background:#1a1a1a;color:#fff;}.btn-save:hover{background:#333;}.btn-save:disabled{background:#999;cursor:not-allowed;}
+.btn-ai{background:#EEEDFE;color:#3C3489;border-color:#AFA9EC;}.btn-ai:hover{background:#e0deff;}
+.btn-clear{background:#fff;color:#666;border-color:#e0e0d8;}.btn-clear:hover{background:#f5f5f0;}
+.btn-edit-sm{background:#FFF8E6;color:#7A4800;border:1px solid #E8C840;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:inherit;}
+.btn-edit-sm:hover{background:#FFF0C0;}
+.btn-del-sm{background:#FEF0F0;color:#8A1F1F;border:1px solid #F0A0A0;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:inherit;}
+.btn-del-sm:hover{background:#FFE0E0;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:9px;margin-bottom:16px;}
+.stat-card{background:#fff;border:1px solid #e8e8e2;border-radius:10px;padding:11px 13px;}
+.stat-label{font-size:10px;color:#888;margin-bottom:3px;font-weight:500;text-transform:uppercase;letter-spacing:.3px;}
+.stat-value{font-size:19px;font-weight:600;}
+.stat-value.green{color:#0F6E56;}.stat-value.red{color:#993C1D;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;padding:8px 7px;font-size:10px;color:#888;font-weight:600;border-bottom:1px solid #e8e8e2;text-transform:uppercase;letter-spacing:.3px;}
+td{padding:8px 7px;border-bottom:1px solid #f0f0e8;vertical-align:middle;}
+tr:hover td{background:#fafaf8;}
+.badge{display:inline-block;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;}
+.badge-buy{background:#E1F5EE;color:#085041;}.badge-sell{background:#FAECE7;color:#712B13;}
+.badge-win{background:#EAF3DE;color:#27500A;}.badge-loss{background:#FCEBEB;color:#791F1F;}.badge-open{background:#E6F1FB;color:#0C447C;}
+.empty-state{text-align:center;padding:40px;color:#aaa;font-size:14px;}
+.ai-box{background:#EEEDFE;border:1px solid #AFA9EC;border-radius:10px;padding:14px;margin-top:13px;display:none;}
+.ai-box-title{font-size:13px;font-weight:600;color:#3C3489;margin-bottom:8px;}
+.ai-box-body{font-size:13px;color:#3C3489;line-height:1.75;white-space:pre-wrap;}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px;}
+.filter-row select,.filter-row input{padding:7px 10px;border:1px solid #e0e0d8;border-radius:8px;font-size:12px;background:#fff;color:#1a1a1a;font-family:inherit;}
+.pnl-item{margin-bottom:10px;}
+.pnl-lbl{font-size:12px;color:#666;margin-bottom:3px;display:flex;justify-content:space-between;}
+.pnl-track{height:6px;background:#f0f0e8;border-radius:99px;overflow:hidden;}
+.pnl-fill{height:100%;border-radius:99px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:14px;padding:22px;width:92%;max-width:520px;max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:13px;padding-bottom:9px;border-bottom:1px solid #f0f0e8;}
+.mg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.mf{display:flex;flex-direction:column;gap:4px;}
+.mf label{font-size:11px;font-weight:500;color:#666;}
+.mf input,.mf select,.mf textarea{width:100%;padding:8px 10px;border:1px solid #e0e0d8;border-radius:8px;font-size:13px;font-family:inherit;background:#fafaf8;}
+.mf input:focus,.mf select:focus{outline:none;border-color:#7F77DD;background:#fff;}
+.mf textarea{resize:vertical;min-height:55px;}
+.modal-btns{display:flex;gap:8px;margin-top:13px;}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid #e0e0d8;border-top-color:#7F77DD;border-radius:50%;animation:spin .6s linear infinite;vertical-align:-3px;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}.toast.error{background:#D85A30;}
+.chip{display:inline-block;background:#f0f0e8;border-radius:5px;padding:2px 6px;font-size:10px;color:#888;margin-left:4px;}
+.comm-note{font-size:11px;color:#888;margin-top:6px;padding:6px 9px;background:#fffbe6;border-radius:6px;border-left:3px solid #e8c840;}
+@media(max-width:600px){
+  .grid-3,.grid-4,.calc-grid{grid-template-columns:1fr 1fr;}
+  .grid-2{grid-template-columns:1fr;}
+  .balance-bar{gap:14px;}
+  .mg2{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="modal-overlay" id="bal-modal">
+  <div class="modal" style="max-width:340px;">
+    <h3>💰 Starting Balance সেট করো</h3>
+    <div class="mf" style="margin-bottom:14px;">
+      <label>Starting Balance ($)</label>
+      <input type="number" id="modal-bal" placeholder="e.g. 1000.00" step="0.01" min="0"/>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-save" style="flex:1;" onclick="saveBalance()">✓ Save</button>
+      <button class="btn btn-clear" style="flex:1;" onclick="document.getElementById('bal-modal').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3>✎ Trade Edit করো</h3>
+    <input type="hidden" id="edit-id"/>
+    <div class="mg2">
+      <div class="mf"><label>তারিখ</label><input type="date" id="e-date"/></div>
+      <div class="mf"><label>সময়</label><input type="time" id="e-time"/></div>
+    </div>
+    <div class="mg2">
+      <div class="mf"><label>Instrument</label>
+        <select id="e-inst">
+          <option>XAU/USD (Gold)</option><option>BTC/USD</option><option>ETH/USD</option>
+          <option>Crude Oil (WTI)</option><option>US30 (Dow Jones)</option><option>US100 (Nasdaq)</option>
+          <option>EUR/USD</option><option>GBP/USD</option><option>Other</option>
+        </select>
+      </div>
+      <div class="mf"><label>Direction</label>
+        <select id="e-dir"><option value="BUY">BUY</option><option value="SELL">SELL</option></select>
+      </div>
+    </div>
+    <div class="mg2">
+      <div class="mf"><label>Lot Size</label><input type="number" id="e-lot" step="0.01"/></div>
+      <div class="mf"><label>Strategy</label>
+        <select id="e-strat">
+          <option>MRC</option><option>SMC</option><option>ICT</option><option>Price Action</option>
+          <option>Breakout</option><option>Support/Resistance</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="mg2">
+      <div class="mf"><label>Entry Price</label><input type="number" id="e-entry" step="0.0001"/></div>
+      <div class="mf"><label>Exit Price</label><input type="number" id="e-exit" step="0.0001"/></div>
+    </div>
+    <div class="mg2">
+      <div class="mf"><label>Stop Loss</label><input type="number" id="e-sl" step="0.0001"/></div>
+      <div class="mf"><label>Take Profit</label><input type="number" id="e-tp" step="0.0001"/></div>
+    </div>
+    <div class="mg2">
+      <div class="mf"><label>P&L ($)</label><input type="number" id="e-pnl" step="0.01"/></div>
+      <div class="mf"><label>Status</label>
+        <select id="e-status"><option value="win">Win</option><option value="loss">Loss</option><option value="open">Open</option></select>
+      </div>
+    </div>
+    <div class="mg2">
+      <div class="mf"><label>Emotion</label>
+        <select id="e-emot">
+          <option value="">—</option><option>Calm / Confident</option><option>Greedy</option>
+          <option>FOMO</option><option>Fearful</option><option>Revenge Trading</option>
+          <option>Patient</option><option>Overconfident</option>
+        </select>
+      </div>
+      <div class="mf"><label>Mistake</label><input type="text" id="e-mistake"/></div>
+    </div>
+    <div class="mf" style="margin-bottom:10px;"><label>Notes</label><textarea id="e-notes"></textarea></div>
+    <div class="modal-btns">
+      <button class="btn btn-save" style="flex:1;" onclick="updateTrade()">✓ Update করো</button>
+      <button class="btn btn-clear" style="flex:1;" onclick="document.getElementById('edit-modal').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="top-bar">
+  <h1>📊 MRC Trading Journal</h1>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span id="sync-st" class="sync-status sync-ing"><span class="spinner"></span>Connecting...</span>
+    <span id="top-date" style="font-size:11px;color:#666;"></span>
+  </div>
+</div>
+
+<div class="balance-bar">
+  <div class="bal-item"><span class="bal-label">Starting Balance</span><span class="bal-value yellow" id="b-start">$0.00</span></div>
+  <div class="bal-item"><span class="bal-label">Gross P&L</span><span class="bal-value" id="b-pnl">$0.00</span></div>
+  <div class="bal-item"><span class="bal-label">Commission</span><span class="bal-value red" id="b-comm">-$0.00</span></div>
+  <div class="bal-item"><span class="bal-label">Net Balance</span><span class="bal-value" id="b-cur">$0.00</span></div>
+  <div class="bal-item"><span class="bal-label">Growth</span><span class="bal-value" id="b-growth">0.00%</span></div>
+  <button class="bal-edit-btn" onclick="document.getElementById('modal-bal').value=startBal||'';document.getElementById('bal-modal').classList.add('open')">✎ Balance</button>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('entry',this)">+ নতুন Trade</button>
+    <button class="tab-btn" onclick="switchTab('history',this)">📋 History</button>
+    <button class="tab-btn" onclick="switchTab('stats',this)">📈 Statistics</button>
+  </div>
+
+  <div id="tab-entry" class="tab-panel active">
+    <div class="card">
+      <div class="card-title">📝 Trade Information</div>
+      <div class="grid-3">
+        <div class="field-group"><span class="field-label">তারিখ</span><input type="date" id="f-date"/></div>
+        <div class="field-group"><span class="field-label">সময়</span><input type="time" id="f-time"/></div>
+        <div class="field-group"><span class="field-label">Instrument</span>
+          <select id="f-inst" onchange="onInstChange()">
+            <option value="">Select...</option>
+            <option>XAU/USD (Gold)</option><option>BTC/USD</option><option>ETH/USD</option>
+            <option>Crude Oil (WTI)</option><option>US30 (Dow Jones)</option><option>US100 (Nasdaq)</option>
+            <option>EUR/USD</option><option>GBP/USD</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="field-group"><span class="field-label">Direction</span>
+          <select id="f-dir" onchange="calcAll()">
+            <option value="">Select...</option>
+            <option value="BUY">BUY (Long)</option><option value="SELL">SELL (Short)</option>
+          </select>
+        </div>
+        <div class="field-group"><span class="field-label">Lot Size <span class="chip" id="lot-chip">—</span></span>
+          <input type="number" id="f-lot" placeholder="0.01" step="0.01" min="0" oninput="calcAll()"/>
+        </div>
+        <div class="field-group"><span class="field-label">Strategy</span>
+          <select id="f-strat">
+            <option value="">Select...</option>
+            <option>MRC</option><option>SMC</option><option>ICT</option>
+            <option>Price Action</option><option>Breakout</option><option>Support/Resistance</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💲 Price Levels & Auto Calculation</div>
+      <div class="grid-4">
+        <div class="field-group"><span class="field-label">Entry Price</span><input type="number" id="f-entry" placeholder="0.00" step="0.0001" oninput="calcAll()"/></div>
+        <div class="field-group"><span class="field-label">Stop Loss</span><input type="number" id="f-sl" placeholder="0.00" step="0.0001" oninput="calcAll()"/></div>
+        <div class="field-group"><span class="field-label">Take Profit</span><input type="number" id="f-tp" placeholder="0.00" step="0.0001" oninput="calcAll()"/></div>
+        <div class="field-group"><span class="field-label">Exit Price</span><input type="number" id="f-exit" placeholder="Open হলে খালি" step="0.0001" oninput="calcAll()"/></div>
+      </div>
+      <div class="calc-grid">
+        <div class="calc-box"><div class="cl">R:R Ratio</div><div class="cv" id="c-rr">—</div></div>
+        <div class="calc-box"><div class="cl">Max Risk ($)</div><div class="cv loss" id="c-risk">—</div></div>
+        <div class="calc-box"><div class="cl">Max Reward ($)</div><div class="cv profit" id="c-rew">—</div></div>
+        <div class="calc-box"><div class="cl">Commission ($)</div><div class="cv warn" id="c-comm">—</div></div>
+        <div class="calc-box"><div class="cl">Net P&L ($)</div><div class="cv" id="c-pnl">—</div></div>
+      </div>
+      <div class="comm-note">📌 Exness Zero: $0.05/lot/side — Round trip = $0.10/lot. Auto calculate হচ্ছে।</div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="field-group"><span class="field-label">P&L Override <span class="chip">broker value হলে</span></span>
+          <input type="number" id="f-pnl" placeholder="Auto calculated হবে" oninput="calcAll()"/>
+        </div>
+        <div class="field-group"><span class="field-label">Session</span>
+          <select id="f-session">
+            <option value="">Select...</option>
+            <option>London</option><option>New York</option><option>Asian</option><option>London+NY Overlap</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🧠 Psychology & Notes</div>
+      <div class="grid-2">
+        <div class="field-group"><span class="field-label">Emotion</span>
+          <select id="f-emot">
+            <option value="">Select...</option>
+            <option>Calm / Confident</option><option>Greedy</option><option>FOMO</option>
+            <option>Fearful</option><option>Revenge Trading</option><option>Patient</option><option>Overconfident</option>
+          </select>
+        </div>
+        <div class="field-group"><span class="field-label">Mistake</span>
+          <input type="text" id="f-mistake" placeholder="SL too tight? Early exit? Rule break?"/>
+        </div>
+      </div>
+      <div class="field-group"><span class="field-label">Notes / Observation</span>
+        <textarea id="f-notes" placeholder="কেন এই trade নিলে? Market structure কেমন ছিল?"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-save" id="save-btn" onclick="saveTrade()">✓ Trade সেভ করো</button>
+        <button class="btn btn-ai" onclick="doAIReview()">✦ AI Review</button>
+        <button class="btn btn-clear" onclick="clearForm()">↺ Clear</button>
+      </div>
+      <div class="ai-box" id="ai-box">
+        <div class="ai-box-title">✦ AI Trade Analysis & Next Trade Suggestions</div>
+        <div class="ai-box-body" id="ai-text"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-history" class="tab-panel">
+    <div class="card">
+      <div class="filter-row">
+        <select id="fi-inst" onchange="renderHistory()">
+          <option value="">All Instruments</option>
+          <option>XAU/USD (Gold)</option><option>BTC/USD</option><option>ETH/USD</option>
+          <option>Crude Oil (WTI)</option><option>US30 (Dow Jones)</option><option>US100 (Nasdaq)</option>
+        </select>
+        <select id="fi-res" onchange="renderHistory()">
+          <option value="">All Results</option>
+          <option value="win">Win</option><option value="loss">Loss</option><option value="open">Open</option>
+        </select>
+        <input type="date" id="fi-date" onchange="renderHistory()"/>
+        <button class="btn btn-clear" onclick="clearFilters()" style="padding:6px 11px;font-size:12px;">Clear</button>
+      </div>
+      <div id="hist-wrap"><div class="empty-state"><span class="spinner"></span> Loading...</div></div>
+    </div>
+  </div>
+
+  <div id="tab-stats" class="tab-panel">
+    <div class="stat-grid" id="stat-grid"></div>
+    <div class="card" id="c-inst" style="display:none;"><div class="card-title">📊 Instrument Net P&L</div><div id="inst-chart"></div></div>
+    <div class="card" id="c-strat" style="display:none;"><div class="card-title">🎯 Strategy Performance</div><div id="strat-chart"></div></div>
+    <div class="card" id="c-emot" style="display:none;"><div class="card-title">🧠 Emotion vs Performance</div><div id="emot-chart"></div></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SB='https://cbglytguwencsmvoszid.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZ2x5dGd1d2VuY3Ntdm9zemlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNTc0MDMsImV4cCI6MjA5MzkzMzQwM30.XftLz7CZd6GtJblEJOfT9OQUfQLLCmz6qh-ge3fkDIk';
+const H={'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY};
+const COMM=0.05; // per lot per side, Exness Zero
+
+let trades=[];
+let startBal=parseFloat(localStorage.getItem('mrc_bal')||'0');
+
+const CFG={
+  'XAU/USD (Gold)':{sz:100,lbl:'100oz/lot'},
+  'BTC/USD':{sz:1,lbl:'1 BTC/lot'},
+  'ETH/USD':{sz:1,lbl:'1 ETH/lot'},
+  'Crude Oil (WTI)':{sz:1000,lbl:'1000 bbl/lot'},
+  'US30 (Dow Jones)':{sz:1,lbl:'1 unit/lot'},
+  'US100 (Nasdaq)':{sz:1,lbl:'1 unit/lot'},
+  'EUR/USD':{sz:100000,lbl:'100k/lot'},
+  'GBP/USD':{sz:100000,lbl:'100k/lot'},
+};
+
+function comm(lot){return lot?parseFloat((COMM*2*lot).toFixed(2)):0;}
+function rawPnl(inst,dir,en,ex,lot){
+  const c=CFG[inst];if(!c||!en||!ex||!lot)return null;
+  return (dir==='BUY'?(ex-en):(en-ex))*c.sz*lot;
+}
+
+function onInstChange(){
+  const v=document.getElementById('f-inst').value;
+  document.getElementById('lot-chip').textContent=CFG[v]?CFG[v].lbl:'—';
+  calcAll();
+}
+
+function calcAll(){
+  const inst=document.getElementById('f-inst').value;
+  const dir=document.getElementById('f-dir').value;
+  const en=parseFloat(document.getElementById('f-entry').value);
+  const sl=parseFloat(document.getElementById('f-sl').value);
+  const tp=parseFloat(document.getElementById('f-tp').value);
+  const ex=parseFloat(document.getElementById('f-exit').value);
+  const lot=parseFloat(document.getElementById('f-lot').value);
+  const man=document.getElementById('f-pnl').value;
+  const cm=comm(lot||0);
+
+  // RR
+  const rrEl=document.getElementById('c-rr');
+  rrEl.textContent=(en&&sl&&tp&&Math.abs(en-sl)>0)?'1:'+(Math.abs(tp-en)/Math.abs(en-sl)).toFixed(2):'—';
+
+  // Risk
+  const rE=document.getElementById('c-risk');
+  if(inst&&dir&&en&&sl&&lot){const r=rawPnl(inst,dir,en,sl,lot);rE.textContent=r!=null?'-$'+Math.abs(r).toFixed(2):'—';}else rE.textContent='—';
+
+  // Reward
+  const rwE=document.getElementById('c-rew');
+  if(inst&&dir&&en&&tp&&lot){const rw=rawPnl(inst,dir,en,tp,lot);rwE.textContent=rw!=null?'+$'+Math.abs(rw).toFixed(2):'—';}else rwE.textContent='—';
+
+  // Commission
+  document.getElementById('c-comm').textContent=lot?'-$'+cm.toFixed(2):'—';
+
+  // Net PnL
+  const pE=document.getElementById('c-pnl');
+  let net=null;
+  if(man!==''){net=parseFloat(man)-cm;}
+  else if(inst&&dir&&en&&ex&&lot){const ap=rawPnl(inst,dir,en,ex,lot);if(ap!=null)net=ap-cm;}
+  if(net!=null){pE.textContent=(net>=0?'+':'')+'$'+net.toFixed(2);pE.className='cv '+(net>=0?'profit':'loss');}
+  else{pE.textContent='—';pE.className='cv';}
+}
+
+function updateBalBar(){
+  const cl=trades.filter(t=>t.status!=='open');
+  const gp=cl.reduce((s,t)=>s+(parseFloat(t.pnl)||0),0);
+  const tc=cl.reduce((s,t)=>s+(parseFloat(t.commission)||0),0);
+  const net=startBal+gp-tc;
+  const gr=startBal>0?((net-startBal)/startBal*100):0;
+  document.getElementById('b-start').textContent='$'+startBal.toFixed(2);
+  const pe=document.getElementById('b-pnl');pe.textContent=(gp>=0?'+':'')+'$'+gp.toFixed(2);pe.className='bal-value '+(gp>=0?'green':'red');
+  document.getElementById('b-comm').textContent='-$'+tc.toFixed(2);
+  document.getElementById('b-cur').textContent='$'+net.toFixed(2);
+  const ge=document.getElementById('b-growth');ge.textContent=(gr>=0?'+':'')+gr.toFixed(2)+'%';ge.className='bal-value '+(gr>=0?'green':'red');
+}
+
+function saveBalance(){
+  const v=parseFloat(document.getElementById('modal-bal').value);
+  if(isNaN(v)||v<0){showToast('Valid amount দাও!',true);return;}
+  startBal=v;localStorage.setItem('mrc_bal',v);
+  document.getElementById('bal-modal').classList.remove('open');
+  updateBalBar();showToast('✓ Balance সেট হয়েছে!');
+}
+
+function showToast(m,e){
+  const t=document.getElementById('toast');t.textContent=m;t.className='toast show'+(e?' error':'');
+  setTimeout(()=>t.className='toast',2500);
+}
+function setSS(s){
+  const el=document.getElementById('sync-st');
+  if(s==='ok'){el.className='sync-status sync-ok';el.textContent='✓ Connected';}
+  else if(s==='err'){el.className='sync-status sync-err';el.textContent='✕ Offline';}
+  else{el.className='sync-status sync-ing';el.innerHTML='<span class="spinner"></span>Syncing...';}
+}
+
+async function fetchTrades(){
+  try{
+    setSS('ing');
+    const r=await fetch(SB+'/rest/v1/trades?select=*&order=created_at.desc',{headers:H});
+    if(!r.ok)throw new Error();
+    trades=await r.json();setSS('ok');updateBalBar();return true;
+  }catch{setSS('err');showToast('Database সমস্যা!',true);return false;}
+}
+
+async function saveTrade(){
+  const inst=document.getElementById('f-inst').value;
+  const dir=document.getElementById('f-dir').value;
+  const en=document.getElementById('f-entry').value;
+  if(!inst||!dir||!en){showToast('Instrument, Direction ও Entry দাও!',true);return;}
+  const ex=document.getElementById('f-exit').value;
+  const lot=parseFloat(document.getElementById('f-lot').value)||null;
+  const man=document.getElementById('f-pnl').value;
+  const cm=comm(lot||0);
+  let gp=null;
+  if(man!=='')gp=parseFloat(man);
+  else if(ex&&lot)gp=rawPnl(inst,dir,parseFloat(en),parseFloat(ex),lot);
+  if(gp!=null)gp=parseFloat(gp.toFixed(2));
+  const st=ex?(gp!=null?(gp>=0?'win':'loss'):'win'):'open';
+  const t={
+    date:document.getElementById('f-date').value,time:document.getElementById('f-time').value,
+    instrument:inst,direction:dir,lot:document.getElementById('f-lot').value,
+    strategy:document.getElementById('f-strat').value,entry:en,
+    sl:document.getElementById('f-sl').value,tp:document.getElementById('f-tp').value,
+    exit_price:ex,pnl:gp,commission:cm,rr:document.getElementById('c-rr').textContent,
+    emotion:document.getElementById('f-emot').value,session:document.getElementById('f-session').value,
+    notes:document.getElementById('f-notes').value,mistake:document.getElementById('f-mistake').value,status:st
+  };
+  const btn=document.getElementById('save-btn');btn.disabled=true;btn.textContent='Saving...';
+  try{
+    const r=await fetch(SB+'/rest/v1/trades',{method:'POST',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(t)});
+    if(!r.ok)throw new Error();
+    showToast('✓ Trade সেভ হয়েছে!');clearForm();await fetchTrades();
+  }catch{showToast('Save সমস্যা!',true);}
+  finally{btn.disabled=false;btn.textContent='✓ Trade সেভ করো';}
+}
+
+function openEdit(id){
+  const t=trades.find(x=>x.id===id);if(!t)return;
+  document.getElementById('edit-id').value=id;
+  document.getElementById('e-date').value=t.date||'';
+  document.getElementById('e-time').value=t.time||'';
+  document.getElementById('e-inst').value=t.instrument||'XAU/USD (Gold)';
+  document.getElementById('e-dir').value=t.direction||'BUY';
+  document.getElementById('e-lot').value=t.lot||'';
+  document.getElementById('e-strat').value=t.strategy||'MRC';
+  document.getElementById('e-entry').value=t.entry||'';
+  document.getElementById('e-exit').value=t.exit_price||'';
+  document.getElementById('e-sl').value=t.sl||'';
+  document.getElementById('e-tp').value=t.tp||'';
+  document.getElementById('e-pnl').value=t.pnl!=null?t.pnl:'';
+  document.getElementById('e-status').value=t.status||'open';
+  document.getElementById('e-emot').value=t.emotion||'';
+  document.getElementById('e-mistake').value=t.mistake||'';
+  document.getElementById('e-notes').value=t.notes||'';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+async function updateTrade(){
+  const id=document.getElementById('edit-id').value;
+  const pv=document.getElementById('e-pnl').value;
+  const lot=parseFloat(document.getElementById('e-lot').value)||0;
+  const cm=comm(lot);
+  const upd={
+    date:document.getElementById('e-date').value,time:document.getElementById('e-time').value,
+    instrument:document.getElementById('e-inst').value,direction:document.getElementById('e-dir').value,
+    lot:document.getElementById('e-lot').value,strategy:document.getElementById('e-strat').value,
+    entry:document.getElementById('e-entry').value,exit_price:document.getElementById('e-exit').value,
+    sl:document.getElementById('e-sl').value,tp:document.getElementById('e-tp').value,
+    pnl:pv!==''?parseFloat(pv):null,commission:cm,status:document.getElementById('e-status').value,
+    emotion:document.getElementById('e-emot').value,mistake:document.getElementById('e-mistake').value,
+    notes:document.getElementById('e-notes').value
+  };
+  try{
+    const r=await fetch(SB+'/rest/v1/trades?id=eq.'+id,{method:'PATCH',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(upd)});
+    if(!r.ok)throw new Error();
+    document.getElementById('edit-modal').classList.remove('open');
+    showToast('✓ Trade update হয়েছে!');await fetchTrades();renderHistory();
+  }catch{showToast('Update সমস্যা!',true);}
+}
+
+async function delTrade(id){
+  if(!confirm('Trade মুছে ফেলবে?'))return;
+  try{
+    await fetch(SB+'/rest/v1/trades?id=eq.'+id,{method:'DELETE',headers:H});
+    showToast('Trade মুছে গেছে।');trades=trades.filter(t=>t.id!==id);renderHistory();updateBalBar();
+  }catch{showToast('মুছতে সমস্যা!',true);}
+}
+
+function clearForm(){
+  ['f-inst','f-dir','f-lot','f-strat','f-entry','f-sl','f-tp','f-exit','f-pnl','f-emot','f-session','f-notes','f-mistake'].forEach(id=>document.getElementById(id).value='');
+  ['c-rr','c-risk','c-rew','c-comm','c-pnl'].forEach(id=>document.getElementById(id).textContent='—');
+  document.getElementById('lot-chip').textContent='—';
+  document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('f-time').value=new Date().toTimeString().slice(0,5);
+  document.getElementById('ai-box').style.display='none';
+}
+
+function clearFilters(){
+  ['fi-inst','fi-res','fi-date'].forEach(id=>document.getElementById(id).value='');
+  renderHistory();
+}
+
+function renderHistory(){
+  const fi=document.getElementById('fi-inst').value;
+  const fr=document.getElementById('fi-res').value;
+  const fd=document.getElementById('fi-date').value;
+  const list=trades.filter(t=>{
+    if(fi&&t.instrument!==fi)return false;
+    if(fr&&t.status!==fr)return false;
+    if(fd&&t.date!==fd)return false;
+    return true;
+  });
+  const c=document.getElementById('hist-wrap');
+  if(!list.length){c.innerHTML='<div class="empty-state">📋 কোনো trade নেই।</div>';return;}
+  c.innerHTML='<div style="overflow-x:auto;"><table><thead><tr><th>তারিখ</th><th>Instrument</th><th>Dir</th><th>Lot</th><th>Entry</th><th>Exit</th><th>P&L</th><th>Comm</th><th>Net</th><th>Result</th><th>Action</th></tr></thead><tbody>'+
+    list.map(t=>{
+      const p=parseFloat(t.pnl)||0;const cm=parseFloat(t.commission)||0;const net=p-cm;
+      return '<tr><td>'+t.date+'<br><span style="color:#aaa;font-size:10px;">'+( t.time||'')+'</span></td>'+
+        '<td style="font-weight:600;font-size:11px;">'+t.instrument+'</td>'+
+        '<td><span class="badge badge-'+(t.direction==='BUY'?'buy':'sell')+'">'+t.direction+'</span></td>'+
+        '<td>'+(t.lot||'—')+'</td><td>'+(t.entry||'')+'</td><td>'+(t.exit_price||'—')+'</td>'+
+        '<td style="font-weight:700;color:'+(p>0?'#0F6E56':p<0?'#993C1D':'#888')+'">'+(t.pnl!=null?(p>=0?'+':'')+'$'+Math.abs(p).toFixed(2):'—')+'</td>'+
+        '<td style="color:#B07A00;font-size:11px;">'+(cm?'-$'+cm.toFixed(2):'—')+'</td>'+
+        '<td style="font-weight:700;color:'+(net>0?'#0F6E56':net<0?'#993C1D':'#888')+'">'+(t.pnl!=null?(net>=0?'+':'')+'$'+net.toFixed(2):'—')+'</td>'+
+        '<td><span class="badge badge-'+(t.status==='win'?'win':t.status==='loss'?'loss':'open')+'">'+(t.status==='win'?'Win':t.status==='loss'?'Loss':'Open')+'</span></td>'+
+        '<td style="display:flex;gap:5px;">'+
+        '<button class="btn-edit-sm" onclick="openEdit('+t.id+')">✎ Edit</button>'+
+        '<button class="btn-del-sm" onclick="delTrade('+t.id+')">✕ Del</button>'+
+        '</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+
+function renderStats(){
+  const cl=trades.filter(t=>t.status!=='open');
+  const wins=cl.filter(t=>t.status==='win');
+  const loss=cl.filter(t=>t.status==='loss');
+  const gp=cl.reduce((s,t)=>s+(parseFloat(t.pnl)||0),0);
+  const tc=cl.reduce((s,t)=>s+(parseFloat(t.commission)||0),0);
+  const net=gp-tc;
+  const wr=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  const aw=wins.length?(wins.reduce((s,t)=>s+(parseFloat(t.pnl)||0),0)/wins.length).toFixed(2):0;
+  const al=loss.length?(loss.reduce((s,t)=>s+(parseFloat(t.pnl)||0),0)/loss.length).toFixed(2):0;
+  const exp=cl.length?((wins.length/cl.length*parseFloat(aw))+(loss.length/cl.length*parseFloat(al))).toFixed(2):0;
+  const gr=startBal>0?(net/startBal*100).toFixed(2):0;
+  document.getElementById('stat-grid').innerHTML=
+    '<div class="stat-card"><div class="stat-label">মোট Trade</div><div class="stat-value">'+trades.length+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value '+(wr>=50?'green':'')+'">'+wr+'%</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Gross P&L</div><div class="stat-value '+(gp>=0?'green':'red')+'">'+(gp>=0?'+':'')+'$'+gp.toFixed(2)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Total Comm</div><div class="stat-value red">-$'+tc.toFixed(2)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Net P&L</div><div class="stat-value '+(net>=0?'green':'red')+'">'+(net>=0?'+':'')+'$'+net.toFixed(2)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Avg Win</div><div class="stat-value green">+$'+aw+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Avg Loss</div><div class="stat-value red">$'+al+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Expectancy</div><div class="stat-value '+(exp>=0?'green':'red')+'">'+(exp>=0?'+':'')+'$'+exp+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Account Growth</div><div class="stat-value '+(gr>=0?'green':'red')+'">'+(gr>=0?'+':'')+gr+'%</div></div>';
+
+  function mkChart(map,elId,cardId){
+    const card=document.getElementById(cardId);
+    if(!Object.keys(map).length){card.style.display='none';return;}
+    card.style.display='block';
+    const mx=Math.max(...Object.values(map).map(Math.abs),1);
+    document.getElementById(elId).innerHTML=Object.entries(map).map(([k,v])=>
+      '<div class="pnl-item"><div class="pnl-lbl"><span>'+k+'</span><span style="font-weight:700;color:'+(v>=0?'#0F6E56':'#993C1D')+'">'+(v>=0?'+':'')+'$'+v.toFixed(2)+'</span></div>'+
+      '<div class="pnl-track"><div class="pnl-fill" style="width:'+(Math.abs(v)/mx*100).toFixed(1)+'%;background:'+(v>=0?'#1D9E75':'#D85A30')+';"></div></div></div>'
+    ).join('');
+  }
+  function mkTable(map,elId,cardId){
+    const card=document.getElementById(cardId);
+    if(!Object.keys(map).length){card.style.display='none';return;}
+    card.style.display='block';
+    document.getElementById(elId).innerHTML='<table><thead><tr><th>Name</th><th>Trades</th><th>Win%</th><th>Net P&L</th></tr></thead><tbody>'+
+      Object.entries(map).map(([k,v])=>'<tr><td style="font-weight:600;">'+k+'</td><td>'+v.n+'</td><td>'+((v.w/v.n)*100).toFixed(0)+'%</td><td style="font-weight:700;color:'+(v.p>=0?'#0F6E56':'#993C1D')+'">'+(v.p>=0?'+':'')+'$'+v.p.toFixed(2)+'</td></tr>').join('')+'</tbody></table>';
+  }
+
+  const iMap={};cl.forEach(t=>{if(!iMap[t.instrument])iMap[t.instrument]=0;iMap[t.instrument]+=((parseFloat(t.pnl)||0)-(parseFloat(t.commission)||0));});
+  mkChart(iMap,'inst-chart','c-inst');
+
+  const sMap={};cl.forEach(t=>{if(t.strategy){if(!sMap[t.strategy])sMap[t.strategy]={p:0,n:0,w:0};sMap[t.strategy].p+=((parseFloat(t.pnl)||0)-(parseFloat(t.commission)||0));sMap[t.strategy].n++;if(t.status==='win')sMap[t.strategy].w++;}});
+  mkTable(sMap,'strat-chart','c-strat');
+
+  const eMap={};cl.forEach(t=>{if(t.emotion){if(!eMap[t.emotion])eMap[t.emotion]={p:0,n:0,w:0};eMap[t.emotion].p+=((parseFloat(t.pnl)||0)-(parseFloat(t.commission)||0));eMap[t.emotion].n++;if(t.status==='win')eMap[t.emotion].w++;}});
+  mkTable(eMap,'emot-chart','c-emot');
+}
+
+async function switchTab(name,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');document.getElementById('tab-'+name).classList.add('active');
+  if(name==='history'){await fetchTrades();renderHistory();}
+  if(name==='stats'){await fetchTrades();renderStats();}
+}
+
+async function doAIReview(){
+  const inst=document.getElementById('f-inst').value;
+  const dir=document.getElementById('f-dir').value;
+  const en=document.getElementById('f-entry').value;
+  if(!inst||!dir||!en){showToast('Instrument, Direction ও Entry Price দাও!',true);return;}
+  const box=document.getElementById('ai-box');
+  const tel=document.getElementById('ai-text');
+  box.style.display='block';
+  tel.innerHTML='<span class="spinner"></span> AI বিশ্লেষণ করছে... একটু অপেক্ষা করো।';
+
+  const lot=document.getElementById('f-lot').value;
+  const sl=document.getElementById('f-sl').value;
+  const tp=document.getElementById('f-tp').value;
+  const rr=document.getElementById('c-rr').textContent;
+  const risk=document.getElementById('c-risk').textContent;
+  const reward=document.getElementById('c-rew').textContent;
+  const cm=document.getElementById('c-comm').textContent;
+  const pnl=document.getElementById('c-pnl').textContent;
+  const emot=document.getElementById('f-emot').value;
+  const strat=document.getElementById('f-strat').value;
+  const notes=document.getElementById('f-notes').value;
+  const mistake=document.getElementById('f-mistake').value;
+  const recent=trades.slice(0,8).map(t=>`${t.date} | ${t.instrument} | ${t.direction} | Lot:${t.lot||'?'} | P&L:${t.pnl!=null?'$'+t.pnl:'open'} | ${t.status} | Emotion:${t.emotion||'?'}`).join('\n');
+
+  const prompt=`তুমি একজন expert trading coach। নিচের trade বিশ্লেষণ করে বাংলা ও English মিশিয়ে feedback দাও।
+
+## Current Trade Details:
+Instrument: ${inst} | Direction: ${dir} | Lot: ${lot||'N/A'}
+Entry: ${en} | SL: ${sl||'N/A'} | TP: ${tp||'N/A'}
+R:R: ${rr} | Max Risk: ${risk} | Max Reward: ${reward}
+Commission (Exness Zero $0.10/lot): ${cm}
+Net P&L (after commission): ${pnl}
+Strategy: ${strat||'N/A'} | Emotion: ${emot||'N/A'}
+Notes: ${notes||'N/A'} | Mistake: ${mistake||'None'}
+
+## Recent Trade History:
+${recent||'No history yet'}
+
+## এই format এ উত্তর দাও:
+
+**🔍 Trade Setup:**
+(R:R ভালো কিনা, SL/TP placement, commission এর impact)
+
+**⚠️ সমস্যা কী ছিল:**
+(specific problems identify করো)
+
+**🧠 Psychology:**
+(emotion এর impact, কোনো warning)
+
+**📊 Pattern:**
+(recent history দেখে কোনো repeating mistake বা pattern)
+
+**✅ Next Trade এ কী করবে:**
+(3-5 টা specific actionable suggestion)`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok){const err=await res.json();tel.textContent='API Error: '+(err.error?.message||'Unknown error');return;}
+    const data=await res.json();
+    const txt=data.content?.filter(b=>b.type==='text').map(b=>b.text).join('');
+    tel.textContent=txt||'Response পাওয়া যায়নি।';
+  }catch(e){
+    tel.textContent='Network সমস্যা হয়েছে। Internet connection চেক করো।\n\nDetails: '+e.message;
+  }
+}
+
+document.getElementById('top-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
+document.getElementById('f-time').value=new Date().toTimeString().slice(0,5);
+fetchTrades().then(ok=>{
+  if(ok)showToast('✓ Database connected!');
+  if(!startBal)setTimeout(()=>document.getElementById('bal-modal').classList.add('open'),700);
+});
+</script>
+</body>
+</html>
